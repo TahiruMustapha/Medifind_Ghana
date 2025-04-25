@@ -2,8 +2,9 @@ import { validateEnv } from "@/helpers/validateEnv";
 import { connectToMongoDB } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 import { cookies } from "next/headers";
+
 validateEnv();
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //FIND USER BY EMAIL
+    // FIND USER BY EMAIL
     const user = await db.collection("users").findOne({ email: email });
 
     if (!user) {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is already verified
     if (user.emailVerified) {
-      return NextResponse.json({ message: "Email already varified!" });
+      return NextResponse.json({ message: "Email already verified!" });
     }
 
     // Check if verification code is valid
@@ -44,12 +45,12 @@ export async function POST(request: NextRequest) {
     // Check if verification code is expired
     if (new Date() > new Date(user.verificationCodeExpires)) {
       return NextResponse.json(
-        { error: "Verification has code expired!" },
+        { error: "Verification code has expired!" },
         { status: 400 }
       );
     }
 
-    //UPDATE USER AS VERIFIED
+    // UPDATE USER AS VERIFIED
     await db.collection("users").updateOne(
       { _id: user._id },
       {
@@ -65,20 +66,19 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    //CREATE TOKEN
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      JWT_SECRET!,
-      {
-        expiresIn: "7d",
-      }
-    );
+    // CREATE TOKEN USING jose
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const token = await new SignJWT({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(secret);
 
-    //SET COOKIES
+    // SET COOKIES
     (await cookies()).set({
       name: "auth_token",
       value: token,
@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
-
     return NextResponse.json({
       message: "Email verified successfully",
       user: {

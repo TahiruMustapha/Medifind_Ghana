@@ -1,5 +1,5 @@
 import { connectToMongoDB } from "@/lib/mongodb";
-import { sendSMS } from "@/lib/sms";
+import { sendSMS, sendVerification } from "@/lib/sms";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const { db } = await connectToMongoDB();
     const { data } = await request.json();
-
     //VALIDATE REQUIRED FIELDS;
 
     if (!data.name || !data.email || !data.password) {
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
       password: hashPassword,
       role: data.role || "user", // user, pharmacy, admin
       verified: false,
-      emailVarified: false,
+      emailVerified: false,
       phoneNumber: data.phoneNumber || null,
       verificationCode: verificationCodeHash,
       verificationCodeExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 Hours
@@ -59,22 +58,43 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     });
 
-    // IF PHONE NUMBER IS PROVIDED , SEND VERIFICATION CODE THROUGH SMS
-    if (data.phoneNumber) {
-      try {
-        await sendSMS(
-          data.phoneNumber,
-          `Your MediFind Ghana verification code is: ${verificationCode}. This code will expire in 24 hours.`
-        );
-      } catch (error) {
-        console.error("Error sending verification SMS:", error);
-      }
+    //IF PHONE NUMBER IS PROVIDED , SEND VERIFICATION CODE THROUGH SMS
+    // if (data.phoneNumber) {
+    //   try {
+    //     await sendSMS(
+    //       data.phoneNumber,
+    //       `Your MediFind Ghana verification code is: ${verificationCode}. This code will expire in 24 hours.`
+    //     );
+    //   } catch (error) {
+    //     console.error("Error sending verification SMS:", error);
+    //   }
+    // }
+    try {
+      await fetch(`http://localhost:3000/api/send-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          verificationCode: verificationCode,
+        }),
+      });
+    } catch (error) {
+      console.error("Error triggering verification endpoint:", error);
     }
+
+    // await sendVerification(
+    //   {
+    //     phoneNumber: data.phoneNumber,
+    //     email: data.email
+    //   },
+    //   verificationCode
+    // );
 
     return NextResponse.json({
       message: "User registered successfully",
       userId: result.insertedId,
-      requiresVarification: true,
+      requiresVerification: true,
     });
   } catch (error) {
     console.log("Error registering user!", error);

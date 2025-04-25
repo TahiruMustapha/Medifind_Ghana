@@ -1,18 +1,20 @@
 import { validateEnv } from "@/helpers/validateEnv";
 import { connectToMongoDB } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { UAParser } from "ua-parser-js";
+
 validateEnv();
 const JWT_SECRET = process.env.JWT_SECRET;
+
 export async function POST(request: NextRequest) {
   try {
     const { db } = await connectToMongoDB();
     const data = await request.json();
 
-    //VALIDATE REQUIRED FIELDS;
+    // VALIDATE REQUIRED FIELDS
     if (!data.email || !data.password) {
       return NextResponse.json(
         { error: "Email and password are required" },
@@ -20,27 +22,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //FIND USER
+    // FIND USER
     const user = await db.collection("users").findOne({ email: data.email });
     if (!user) {
       return NextResponse.json(
-        { eror: "Invalid credentials" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    //VARIFY PASSWORD
-    const isPasswordVallid = await bcrypt.compare(
+    // VERIFY PASSWORD
+    const isPasswordValid = await bcrypt.compare(
       data.password,
-      user.passwordHash
+      user.password
     );
-    if (!isPasswordVallid) {
+    if (!isPasswordValid) {
       return NextResponse.json(
-        { eror: "Invalid credentials" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
-    //CHECK IF USER IS VERIFIED
+
+    // CHECK IF USER IS VERIFIED
     if (!user.emailVerified) {
       return NextResponse.json(
         {
@@ -52,7 +55,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //CHECK IF TWO FACTOR AUTHENTICATION IS ENABLED
+    // CHECK IF TWO FACTOR AUTHENTICATION IS ENABLED
     if (user.twoFactorEnabled) {
       // Generate and send 2FA code
       const response = await fetch(
@@ -60,7 +63,7 @@ export async function POST(request: NextRequest) {
         {
           method: "POST",
           headers: {
-            "Content-Type": "Application/json",
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ email: user.email }),
         }
@@ -76,18 +79,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //CREATE TOKEN;
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
+    // CREATE TOKEN USING jose
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const token = await new SignJWT({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(secret);
 
-    //SET COOKIES
+    
+    // SET COOKIES
     (await cookies()).set({
       name: "auth_token",
       value: token,
@@ -97,25 +102,25 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
-    //PARSE USER AGENT;
+    // PARSE USER AGENT
     const userAgent = request.headers.get("user-agent") || "";
     const parser = new UAParser(userAgent);
-    const browswer = parser.getBrowser();
+    const browser = parser.getBrowser();
     const os = parser.getOS();
     const device = parser.getDevice();
 
-    //GET IP ADDRESS
+    // GET IP ADDRESS
     const ip =
       request.headers.get("x-forwarded-for") ||
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    //STORE SESSION INFORMATION
+    // STORE SESSION INFORMATION
     await db.collection("sessions").insertOne({
       userId: user._id,
       token: token,
       userAgent: userAgent,
-      browser: `${browswer.name || "Unknown"} ${browswer.version || ""}`,
+      browser: `${browser.name || "Unknown"} ${browser.version || ""}`,
       os: `${os.name || "Unknown"} ${os.version || ""}`,
       device: device.type
         ? `${device.vendor || ""} ${device.model || ""} (${device.type})`
@@ -125,7 +130,6 @@ export async function POST(request: NextRequest) {
       lastActive: new Date(),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
-
     return NextResponse.json({
       message: "Login successful",
       user: {

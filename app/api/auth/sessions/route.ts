@@ -3,28 +3,33 @@ import { connectToMongoDB } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
+import { verifyToken } from "@/lib/auth";
 validateEnv();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // GET /api/auth/sessions - Get all sessions for the current user
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    //GET USERiD FROM MIDDLEWARE
-    const userId = request.headers.get("x-user-id");
-    if (!userId) {
+    //GET USERID FROM MIDDLEWARE
+    const token = (await cookies()).get("auth_token")?.value;
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const payload = await verifyToken(token);
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = new ObjectId(payload.userId)
+    // const token = request.cookies.get("auth_token")?.value;
+    // const userId = request.headers.get("x-user-id");
+    
     const { db } = await connectToMongoDB();
 
     //GET CURRRENT SESSION TOKEN
-    const token = (await cookies()).get("auth_token")?.value;
-    if (!token) {
-      return NextResponse.json({ error: "No active session" }, { status: 401 });
-    }
     // Get all sessions for the user
     const sessions = await db
       .collection("sessions")
-      .find({ userId: new ObjectId(userId) })
+      .find({userId})
       .sort({ lastActive: -1 })
       .toArray();
 
@@ -46,18 +51,25 @@ export async function POST(request: NextRequest) {
 // DELETE /api/auth/sessions - Terminate all sessions except current
 export async function DELETE(request: NextRequest) {
   try {
-    //GET USERiD FROM MIDDLEWARE
-    const userId = request.headers.get("x-user-id");
-    if (!userId) {
+    //GET USERID FROM MIDDLEWARE
+    const token = (await cookies()).get("auth_token")?.value;
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const payload = await verifyToken(token);
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = new ObjectId(payload.userId)
+    // const token = request.cookies.get("auth_token")?.value;
+    // const userId = request.headers.get("x-user-id");
     const { db } = await connectToMongoDB();
 
     //GET CURRENT SESSION TOKEN
-    const token = (await cookies()).get("auth_token")?.value;
-    if (!token) {
-      return NextResponse.json({ error: "No active session" }, { status: 401 });
-    }
+    // const token = (await cookies()).get("auth_token")?.value;
+    // if (!token) {
+    //   return NextResponse.json({ error: "No active session" }, { status: 401 });
+    // }
 
     // Delete all sessions except current
     const result = await db.collection("sessions").deleteMany({

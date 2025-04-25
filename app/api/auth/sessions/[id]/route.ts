@@ -1,3 +1,4 @@
+import { verifyToken } from "@/lib/auth";
 import { connectToMongoDB } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
@@ -9,20 +10,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get user ID from middleware
-    const userId = request.headers.get("x-user-id");
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const { id } = params;
-    const { db } = await connectToMongoDB();
-
-    // Get current session token
+    //GET USERID FROM MIDDLEWARE
     const token = (await cookies()).get("auth_token")?.value;
     if (!token) {
-      return NextResponse.json({ error: "No active session" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const payload = await verifyToken(token);
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = new ObjectId(payload.userId);
+    // const token = request.cookies.get("auth_token")?.value;
+    // const userId = request.headers.get("x-user-id");
 
+    const { id } = params;
+    const { db } = await connectToMongoDB();
     //GET THE SESSION TO BE TERMINATED
     const session = await db.collection("sessions").findOne({
       _id: new ObjectId(id),
@@ -45,6 +47,10 @@ export async function DELETE(
 
     // Delete the session
     await db.collection("sessions").deleteOne({ _id: new ObjectId(id) });
+    return NextResponse.json(
+      { message: "Session terminated successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error terminating session:", error);
     return NextResponse.json(
