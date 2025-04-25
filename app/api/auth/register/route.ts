@@ -7,7 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const { db } = await connectToMongoDB();
-    const { data } = await request.json();
+    const  data = await request.json();
+    console.log("Data",data)
     //VALIDATE REQUIRED FIELDS;
 
     if (!data.name || !data.email || !data.password) {
