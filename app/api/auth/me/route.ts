@@ -4,16 +4,23 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { connectToMongoDB } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { verifyToken } from "@/lib/auth";
 validateEnv();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function GET(request: NextRequest) {
   try {
-    //GET TOKEN FROM COOKIES
-    const token = (await cookies()).get("auth_token")?.value;
-    if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    // Get user ID from middleware
+           const token = request.cookies.get("auth_token")?.value;
+           // const userId = request.headers.get("x-user-id");
+           if (!token) {
+             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+           }
+           const payload = await verifyToken(token);
+           if (!payload) {
+             return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+           }
+           const userId = payload.userId;
 
     //VERIFY TOKEN
     const decoded = jwt.verify(token, JWT_SECRET!) as {

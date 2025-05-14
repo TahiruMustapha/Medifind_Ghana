@@ -16,12 +16,11 @@ export async function middleware(request: NextRequest) {
   if (!isProtectedPath) return NextResponse.next();
 
   const token = request.cookies.get("auth_token")?.value;
-  // console.log("token", token);
-  if (!token) {
-    return NextResponse.redirect(
-      new URL("/login?redirect=" + path, request.url)
-    );
-  }
+  // if (!token) {
+  //   return NextResponse.redirect(
+  //     new URL("/login?redirect=" + path, request.url)
+  //   );
+  // }
   try {
     const payload = token ? await verifyToken(token) : null;
     if (!payload) {

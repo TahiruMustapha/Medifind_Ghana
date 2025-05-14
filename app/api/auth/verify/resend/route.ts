@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({
       message: "Verification code sent successfully",
+      code: verificationCode,
     });
   } catch (error) {
     console.error("Error resending verification code:", error);

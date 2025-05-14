@@ -25,13 +25,13 @@ export function NavBar() {
               </Link>
             )}
 
-            {user.role === "pharmacy" && (
+            {user?.role === "pharmacy" && (
               <Link href="/pharmacy/dashboard">
                 <Button variant="outline">Pharmacy Dashboard</Button>
               </Link>
             )}
 
-            {user.role === "user" && (
+            {user?.role === "user" && (
               <Link href="/dashboard">
                 <Button variant="outline">Dashboard</Button>
               </Link>

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useState } from "react";
 
@@ -29,6 +29,8 @@ export default function PharmacyRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [requiresVerification, setRequiresVerification] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     location: "",
@@ -70,7 +72,9 @@ export default function PharmacyRegister() {
       [name]: value,
     }));
   };
-
+  const handleVerify = () => {
+    router.push(`/verify?email=${registeredEmail}`);
+  };
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -97,19 +101,34 @@ export default function PharmacyRegister() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.ownerName,
-          email: formData.email,
-          password: formData.password,
-          role: "pharmacy",
+          data: {
+            name: formData.ownerName,
+            email: formData.email,
+            phoneNumber: formData.contactNumber,
+            password: formData.password,
+            role: "pharmacy",
+          },
         }),
       });
 
       const userData = await userResponse.json();
+      if (userResponse.ok) {
+        setSuccess(true);
+        setRegisteredEmail(formData.email);
 
+        if (userData.requiresVerification) {
+          setRequiresVerification(true);
+        } else {
+          // Redirect after a delay
+          setTimeout(() => {
+            router.push("/login");
+          }, 3000);
+        }
+      }
       if (!userResponse.ok) {
         throw new Error("Failed to create user account");
       }
-
+    
       // Register pharmacy with user ID
       const pharmacyResponse = await fetch("/api/pharmacies", {
         method: "POST",
@@ -138,9 +157,9 @@ export default function PharmacyRegister() {
       setSuccess(true);
 
       // Redirect after a delay
-      setTimeout(() => {
-        router.push("/pharmacy/pending-verification");
-      }, 3000);
+      // setTimeout(() => {
+      //   router.push("/pharmacy/pending-verification");
+      // }, 3000);
     } catch (error) {
       console.error("Registration error:", error);
       setError("An error occurred during registration");
@@ -148,6 +167,7 @@ export default function PharmacyRegister() {
       setLoading(false);
     }
   };
+
   return (
     <main className=" flex min-h-screen flex-col p-4 md:p-8">
       <div className="max-w-3xl mx-auto w-full">
@@ -163,13 +183,34 @@ export default function PharmacyRegister() {
 
         {success && (
           <Alert className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle>Registration Successful</AlertTitle>
+            <AlertDescription>
+              {requiresVerification
+                ? "Your account has been created. Please verify your account to continue."
+                : "Your account has been created successfully. You will be redirected to the login page shortly."}
+
+              {requiresVerification && (
+                <Button
+                  variant="outline"
+                  className="mt-2 bg-green-100 border-green-200 text-green-800 hover:bg-green-200 hover:text-green-900"
+                  onClick={handleVerify}
+                >
+                  Verify Account
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        {/* {success && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
             <AlertTitle>Registration Successful</AlertTitle>
             <AlertDescription>
               Your pharmacy has been registered successfully. It is now pending
               verification. You will be redirected shortly.
             </AlertDescription>
           </Alert>
-        )}
+        )} */}
 
         <Card>
           <CardHeader>

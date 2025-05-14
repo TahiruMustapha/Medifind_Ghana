@@ -16,12 +16,11 @@ export async function POST(req: NextRequest) {
     if (!verificationCode || (!email && !phoneNumber)) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
-
     // Send Email
     if (email) {
       await resend.emails.send({
         from: "onboarding@resend.dev", // or your verified domain email
-        to: email,
+        to: ["tahirumustapha13@gmail.com", "mustaphatahiru13@gmail.com"],
         subject: "Verify your MediFind Account",
         html: `<p>Your MediFind Ghana verification code is: <strong>${verificationCode}</strong>.</p><p>This code will expire in 24 hours.</p>`,
       });
@@ -35,9 +34,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ message: "Verification sent successfully" });
+    return NextResponse.json({
+      message: "Verification sent successfully",
+      code: verificationCode,
+    });
   } catch (error) {
     console.error("Error sending verification:", error);
-    return NextResponse.json({ error: "Failed to send verification" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to send verification" },
+      { status: 500 }
+    );
   }
 }

@@ -34,7 +34,7 @@ export default function UserDashboard() {
   }
 
   if (!user) {
-    return null; // Will redirect in useEffect
+    return null; 
   }
 
   return (

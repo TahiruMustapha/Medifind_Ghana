@@ -52,7 +52,6 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
-console.log("Data from backend after login!",data)
       if (response.ok) {
         if (data.requiresTwoFactor) {
           // Redirect to 2FA page

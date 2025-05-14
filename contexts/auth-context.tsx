@@ -78,10 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check if user is logged in
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
@@ -272,7 +276,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/users/2fa");
       const data = await res.json();
-console.log(data)
       if (res.ok) {
         return {
           enabled: data.enabled,

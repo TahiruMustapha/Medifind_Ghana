@@ -21,7 +21,7 @@ export default function VerifyPage() {
   const [success, setSuccess] = useState(false)
   const [verificationCode, setVerificationCode] = useState("")
 
-  const handleSubmit = async (e:FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError("")
@@ -29,6 +29,7 @@ export default function VerifyPage() {
     try {
       const response = await fetch("/api/auth/verify", {
         method: "POST",
+        credentials: "include", // Crucial for cookies
         headers: {
           "Content-Type": "application/json",
         },
@@ -42,11 +43,8 @@ export default function VerifyPage() {
 
       if (response.ok) {
         setSuccess(true)
-
-        // Redirect after a delay
-        setTimeout(() => {
-          router.push("/dashboard")
-        }, 3000)
+        // Shorter delay for better UX
+        setTimeout(() => router.push("/dashboard"), 1000)
       } else {
         setError(data.error || "Verification failed")
       }
@@ -87,7 +85,7 @@ export default function VerifyPage() {
     }
   }
 
-  // If no email is provided, redirect to login
+  // Redirect if no email
   useEffect(() => {
     if (!email) {
       router.push("/login")
@@ -95,7 +93,7 @@ export default function VerifyPage() {
   }, [email, router])
 
   if (!email) {
-    return null // Will redirect in useEffect
+    return null
   }
 
   return (
@@ -116,7 +114,7 @@ export default function VerifyPage() {
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertTitle>Success</AlertTitle>
             <AlertDescription>
-              {loading ? "Your account has been verified! Redirecting..." : "Verification code sent successfully."}
+              Account verified! Redirecting to dashboard...
             </AlertDescription>
           </Alert>
         )}
@@ -124,13 +122,20 @@ export default function VerifyPage() {
         <Card>
           <CardHeader>
             <CardTitle>Verify Your Account</CardTitle>
-            <CardDescription>Enter the verification code sent to your phone number</CardDescription>
+            <CardDescription>
+              Enter the verification code sent to {email}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" value={email} disabled />
+                <Input 
+                  id="email" 
+                  value={email} 
+                  disabled 
+                  className="text-muted-foreground"
+                />
               </div>
 
               <div className="space-y-2">
@@ -141,10 +146,17 @@ export default function VerifyPage() {
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   required
+                  maxLength={6}
+                  pattern="\d{6}"
+                  title="Please enter a 6-digit code"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading || verificationCode.length !== 6}
+              >
                 {loading ? "Verifying..." : "Verify Account"}
               </Button>
             </form>
@@ -152,7 +164,11 @@ export default function VerifyPage() {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-muted-foreground">
               Didn't receive a code?{" "}
-              <button onClick={handleResendCode} className="text-primary hover:underline" disabled={resending}>
+              <button 
+                onClick={handleResendCode} 
+                className="text-primary hover:underline" 
+                disabled={resending}
+              >
                 {resending ? "Sending..." : "Resend Code"}
               </button>
             </div>

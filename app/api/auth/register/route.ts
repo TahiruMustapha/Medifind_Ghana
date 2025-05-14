@@ -7,10 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const { db } = await connectToMongoDB();
-    const  data = await request.json();
-    console.log("Data",data)
+    const {data} = await request.json();
     //VALIDATE REQUIRED FIELDS;
-
+    console.log(data);
     if (!data.name || !data.email || !data.password) {
       return NextResponse.json(
         { error: "Missing required fields" },

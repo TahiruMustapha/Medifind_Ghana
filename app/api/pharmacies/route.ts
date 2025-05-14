@@ -52,11 +52,12 @@ export async function POST(request: NextRequest) {
     const result = await db.collection("pharmacies").insertOne({
       name: data.name,
       location: data.location,
-      region:data.region,
+      region: data.region,
       coordinates: data.coordinates || null,
       contactNumber: data.contactNumber,
       email: data.email || null,
       operatingHours: data.operatingHours || null,
+      userId: data.userId,
       verified: false,
       licenseNumber: data.licenseNumber || null,
       createdAt: new Date(),
