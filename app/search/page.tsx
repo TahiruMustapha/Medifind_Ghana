@@ -16,16 +16,31 @@ import { NavBar } from "@/components/nav-bar";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 
+interface Medicine {
+  _id: string;
+  name: string;
+  genericName: string;
+  category: string;
+  description: string;
+  pharmacies: {
+    pharmacyId: string;
+    pharmacyName: string;
+    location: string;
+    price: number;
+    quantity: number;
+    lastUpdated: string;
+  }[];
+}
+
 export default function SearchPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
 
   useEffect(() => {
-    // If user is logged in, fetch their subscriptions
     if (user) {
       fetchSubscriptions();
     }
@@ -35,7 +50,6 @@ export default function SearchPage() {
     try {
       const response = await fetch("/api/users/subscriptions");
       const data = await response.json();
-
       if (response.ok) {
         setSubscriptions(data.subscriptions || []);
       }
@@ -51,32 +65,33 @@ export default function SearchPage() {
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.append("name", searchTerm);
-      if (location) params.append("location", location);
+      if (location && location !== "all") params.append("location", location);
 
       const response = await fetch(`/api/medicines?${params.toString()}`);
       const data = await response.json();
 
-      setResults(data.medicines || []);
-
-      // Log search activity if user is logged in
-      if (user) {
-        await fetch("/api/users/activity", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "search",
-            description: `Searched for "${searchTerm}" ${
-              location ? `in ${location}` : ""
-            }`,
-            metadata: {
-              searchTerm,
-              location,
-              resultsCount: data.medicines?.length || 0,
+      if (response.ok) {
+        setResults(data.data || []);
+        
+        if (user) {
+          await fetch("/api/users/activity", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          }),
-        });
+            body: JSON.stringify({
+              type: "search",
+              description: `Searched for "${searchTerm}" ${
+                location ? `in ${location}` : ""
+              }`,
+              metadata: {
+                searchTerm,
+                location,
+                resultsCount: data.data?.length || 0,
+              },
+            }),
+          });
+        }
       }
     } catch (error) {
       console.error("Error searching medicines:", error);
@@ -85,7 +100,7 @@ export default function SearchPage() {
     }
   };
 
-  const handleSubscribe = async (medicineId, medicineName) => {
+  const handleSubscribe = async (medicineId: string, medicineName: string) => {
     try {
       const response = await fetch("/api/users/subscriptions", {
         method: "POST",
@@ -99,7 +114,6 @@ export default function SearchPage() {
       });
 
       if (response.ok) {
-        // Refresh subscriptions
         fetchSubscriptions();
       }
     } catch (error) {
@@ -107,8 +121,8 @@ export default function SearchPage() {
     }
   };
 
-  const isSubscribed = (medicineId) => {
-    return subscriptions.some((sub) => sub.medicineId === medicineId);
+  const isSubscribed = (medicineId: string) => {
+    return subscriptions.some((sub: any) => sub.medicineId === medicineId);
   };
 
   return (
@@ -237,61 +251,41 @@ export default function SearchPage() {
                       </div>
 
                       <div className="divide-y">
-                        {medicine.availability &&
-                          medicine.availability
-                            .filter((a) => a.inStock)
-                            .map((avail, index) => {
-                              const pharmacy = medicine.pharmacyDetails.find(
-                                (p) =>
-                                  p._id.toString() ===
-                                  avail.pharmacyId.toString()
-                              );
-
-                              if (!pharmacy) return null;
-
-                              return (
-                                <div
-                                  key={index}
-                                  className="p-4 flex justify-between items-center"
-                                >
-                                  <div>
-                                    <h4 className="font-medium">
-                                      {pharmacy.name}
-                                    </h4>
-                                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                      <MapPin className="h-3 w-3 mr-1" />
-                                      {pharmacy.location}
-                                    </div>
-                                    <div className="flex items-center text-sm mt-1">
-                                      <Phone className="h-3 w-3 mr-1" />
-                                      {pharmacy.contactNumber}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    {avail.price && (
-                                      <div className="font-semibold">
-                                        GH₵ {avail.price.toFixed(2)}
-                                      </div>
-                                    )}
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      Updated{" "}
-                                      {new Date(
-                                        avail.lastUpdated
-                                      ).toLocaleDateString()}
-                                    </div>
-                                    <Link
-                                      href={`/report?medicineId=${medicine._id}&name=${medicine.name}&pharmacyId=${pharmacy._id}&pharmacy=${pharmacy.name}`}
-                                      className="text-xs text-primary hover:underline mt-1 inline-block"
-                                    >
-                                      Report Availability
-                                    </Link>
-                                  </div>
+                        {medicine.pharmacies && medicine.pharmacies.length > 0 ? (
+                          medicine.pharmacies.map((pharmacy) => (
+                            <div
+                              key={`${medicine._id}-${pharmacy.pharmacyId}`}
+                              className="p-4 flex justify-between items-center"
+                            >
+                              <div>
+                                <h4 className="font-medium">
+                                  {pharmacy.pharmacyName}
+                                </h4>
+                                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {pharmacy.location}
                                 </div>
-                              );
-                            })}
-
-                        {(!medicine.availability ||
-                          !medicine.availability.some((a) => a.inStock)) && (
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">
+                                  GH₵ {pharmacy.price.toFixed(2)}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Updated{" "}
+                                  {new Date(
+                                    pharmacy.lastUpdated
+                                  ).toLocaleDateString()}
+                                </div>
+                                <Link
+                                  href={`/report?medicineId=${medicine._id}&name=${medicine.name}&pharmacyId=${pharmacy.pharmacyId}&pharmacy=${pharmacy.pharmacyName}`}
+                                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                                >
+                                  Report Availability
+                                </Link>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
                           <div className="p-4 text-center text-muted-foreground">
                             Currently out of stock at all pharmacies
                           </div>

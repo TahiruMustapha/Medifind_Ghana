@@ -19,7 +19,7 @@ export function NavBar() {
 
         {user ? (
           <>
-            {user.role === "admin" && (
+            {user?.role === "admin" && (
               <Link href="/admin">
                 <Button variant="outline">Admin</Button>
               </Link>

@@ -1,3 +1,4 @@
+import { verifyToken } from "@/lib/auth";
 import { connectToMongoDB } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
@@ -9,7 +10,18 @@ export async function GET(
 ) {
   try {
     // Get user ID from middleware
-    const userId = request.headers.get("x-user-id");
+
+    // const userId = request.headers.get("x-user-id");
+    const token = request.cookies.get("auth_token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = payload.userId;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -18,7 +30,8 @@ export async function GET(
 
     // Find pharmacy associated with user
     const pharmacy = await db.collection("pharmacies").findOne({
-      userId: new ObjectId(userId),
+      // userId: new ObjectId(userId),
+      userId: payload.userId,
     });
 
     if (!pharmacy) {
@@ -58,7 +71,17 @@ export async function PUT(
 ) {
   try {
     // Get user ID from middleware
-    const userId = request.headers.get("x-user-id");
+    // const userId = request.headers.get("x-user-id");
+    const token = request.cookies.get("auth_token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = payload.userId;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -68,7 +91,8 @@ export async function PUT(
 
     // Find pharmacy associated with user
     const pharmacy = await db.collection("pharmacies").findOne({
-      userId: new ObjectId(userId),
+      // userId: new ObjectId(userId),
+      userId: payload.userId,
     });
 
     if (!pharmacy) {
@@ -146,7 +170,17 @@ export async function DELETE(
 ) {
   try {
     // Get user ID from middleware
-    const userId = request.headers.get("x-user-id");
+    // const userId = request.headers.get("x-user-id");
+    const token = request.cookies.get("auth_token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = payload.userId;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -156,7 +190,8 @@ export async function DELETE(
 
     // Find pharmacy associated with user
     const pharmacy = await db.collection("pharmacies").findOne({
-      userId: new ObjectId(userId),
+      // userId: new ObjectId(userId),
+      userId: payload.userId,
     });
 
     if (!pharmacy) {

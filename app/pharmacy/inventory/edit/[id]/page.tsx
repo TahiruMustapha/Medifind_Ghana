@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent, ChangeEvent } from "react";
+import { useState, useEffect, FormEvent, ChangeEvent, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,14 +28,14 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 interface EditMedicinePageProps {
-  params: {
+  params: Promise< {
     id: string;
-  };
+  }>;
 }
 type InputChangeType = ChangeEvent<HTMLInputElement | HTMLTextAreaElement>;
 export default function EditMedicinePage({ params }: EditMedicinePageProps) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
