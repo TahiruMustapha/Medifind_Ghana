@@ -56,6 +56,29 @@ interface ApiResponse<T> {
   stack?: string;
 }
 
+// Haversine formula to calculate distance between two points
+function calculateDistance(
+  lat1: number, 
+  lon1: number, 
+  lat2: number, 
+  lon2: number
+): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const distance = R * c; // Distance in km
+  return distance;
+}
+
+function deg2rad(deg: number): number {
+  return deg * (Math.PI/180);
+}
+
 // GET /api/medicines - Get all medicines with availability
 export async function GET(request: NextRequest) {
   try {
@@ -65,6 +88,11 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const name = searchParams.get("name")?.trim();
     const location = searchParams.get("location")?.trim();
+
+    // Get user coordinates for distance calculation
+    const userLat = parseFloat(searchParams.get("latitude") || "0");
+    const userLng = parseFloat(searchParams.get("longitude") || "0");
+    const hasUserLocation = userLat !== 0 && userLng !== 0;
 
     // Build the base query for medicines
     const medicineQuery: Document = {};
@@ -177,6 +205,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Final grouping stage
+    // pipeline.push({
+    //   $group: {
+    //     _id: "$_id",
+    //     name: { $first: "$name" },
+    //     genericName: { $first: "$genericName" },
+    //     category: { $first: "$category" },
+    //     description: { $first: "$description" },
+    //     pharmacies: {
+    //       $push: {
+    //         pharmacyId: "$pharmacy._id",
+    //         pharmacyName: "$pharmacy.name",
+    //         location: "$pharmacy.location",
+    //         price: "$inventoryItems.price",
+    //         quantity: "$inventoryItems.quantity",
+    //         lastUpdated: "$inventoryItems.lastUpdated",
+    //       },
+    //     },
+    //   },
+    // });
+
     pipeline.push({
       $group: {
         _id: "$_id",
@@ -189,12 +237,14 @@ export async function GET(request: NextRequest) {
             pharmacyId: "$pharmacy._id",
             pharmacyName: "$pharmacy.name",
             location: "$pharmacy.location",
+            latitude: "$pharmacy.latitude",
+            longitude: "$pharmacy.longitude",
             price: "$inventoryItems.price",
             quantity: "$inventoryItems.quantity",
-            lastUpdated: "$inventoryItems.lastUpdated",
-          },
-        },
-      },
+            lastUpdated: "$inventoryItems.lastUpdated"
+          }
+        }
+      }
     });
 
     // Final sort
@@ -205,6 +255,27 @@ export async function GET(request: NextRequest) {
       .collection<Medicine>("medicines")
       .aggregate<MedicineWithPharmacies>(pipeline)
       .toArray();
+    
+     // Calculate distances and sort pharmacies by proximity if user location is provided
+     if (hasUserLocation) {
+      medicines.forEach(medicine => {
+        medicine.pharmacies.forEach((pharmacy: any) => {
+          if (pharmacy.latitude && pharmacy.longitude) {
+            pharmacy.distance = calculateDistance(
+              userLat, 
+              userLng, 
+              pharmacy.latitude, 
+              pharmacy.longitude
+            );
+          } else {
+            pharmacy.distance = Number.MAX_VALUE; // Put pharmacies without coordinates at the end
+          }
+        });
+        
+        // Sort pharmacies by distance (nearest first)
+        medicine.pharmacies.sort((a: any, b: any) => a.distance - b.distance);
+      });
+    }
 
     return NextResponse.json<ApiResponse<MedicineWithPharmacies[]>>({
       success: true,

@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type User = {
@@ -17,6 +17,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  refreshUser: () => Promise<void>;
   login: (
     email: string,
     password: string
@@ -74,28 +75,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if user is logged in
-    const checkAuth = async () => {
-      try {
-        const res = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      } finally {
-        setLoading(false);
+  // Function to refresh user data from server
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
       }
-    };
-
-    checkAuth();
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+      setUser(null);
+    }
   }, []);
+
+// For Next.js 15+ with App Router
+useEffect(() => {
+  // Initial auth check
+  const checkAuth = async () => {
+    try {
+      await refreshUser();
+    } catch (error) {
+      console.error("Error checking authentication:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  checkAuth();
+
+  // For App Router in Next.js 15+, we need to use the Navigation API
+  // or pathname changes to detect navigation
+  if (typeof window !== 'undefined') {
+    // Create a pathname state to detect changes
+    let previousPathname = window.location.pathname;
+    
+    // Create a MutationObserver to watch for DOM changes that might indicate navigation
+    const observer = new MutationObserver(() => {
+      const currentPathname = window.location.pathname;
+      if (previousPathname !== currentPathname) {
+        previousPathname = currentPathname;
+        if (!loading) {
+          refreshUser();
+        }
+      }
+    });
+    
+    // Start observing the document body for changes
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }
+}, [refreshUser, loading]);
+
 
   const login = async (email: string, password: string) => {
     try {
@@ -118,7 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        setUser(data.user);
+        // Instead of directly setting user from response,
+        // refresh user data from server to ensure consistency
+        await refreshUser();
         return { success: true };
       } else if (res.status === 403 && data.requiresVerification) {
         return {
@@ -181,7 +221,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (res.ok) {
-        setUser(data.user);
+        // Refresh user data instead of directly setting from response
+        await refreshUser();
         return { success: true };
       } else {
         return { success: false, error: data.error || "Verification failed" };
@@ -231,7 +272,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (res.ok) {
-        setUser(data.user);
+        // Refresh user data instead of directly setting from response
+        await refreshUser();
         return { success: true };
       } else {
         return {
@@ -258,6 +300,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (res.ok) {
+        // Refresh user to update twoFactorEnabled status
+        await refreshUser();
         return { success: true };
       } else {
         return {
@@ -350,6 +394,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
 
       if (res.ok) {
+        // Refresh user after password reset in case user is logged in
+        await refreshUser();
         return { success: true };
       } else {
         return {
@@ -368,6 +414,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
+        refreshUser,
         login,
         register,
         logout,

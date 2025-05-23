@@ -36,6 +36,7 @@ export default function PharmacyRegister() {
     location: "",
     region: "",
     address: "",
+    operatingHours:"",
     contactNumber: "",
     email: "",
     licenseNumber: "",
@@ -140,6 +141,7 @@ export default function PharmacyRegister() {
           location: formData.location,
           region: formData.region,
           address: formData.address,
+          operatingHours:formData.operatingHours,
           contactNumber: formData.contactNumber,
           email: formData.email,
           licenseNumber: formData.licenseNumber,
@@ -330,7 +332,19 @@ export default function PharmacyRegister() {
                       required
                     />
                   </div>
+                  
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="operatingHours">Operating Hours *</Label>
+                    <Input
+                      id="operatingHours"
+                      name="operatingHours"
+                      type="text"
+                      value={formData.operatingHours}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
               </div>
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Account Information</h3>

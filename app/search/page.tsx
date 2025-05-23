@@ -15,6 +15,7 @@ import { Search, MapPin, Phone, Bell } from "lucide-react";
 import { NavBar } from "@/components/nav-bar";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
+import { useGeoLocation } from "@/hooks/useGeoLocation";
 
 interface Medicine {
   _id: string;
@@ -26,6 +27,7 @@ interface Medicine {
     pharmacyId: string;
     pharmacyName: string;
     location: string;
+    distance: number;
     price: number;
     quantity: number;
     lastUpdated: string;
@@ -39,6 +41,12 @@ export default function SearchPage() {
   const [results, setResults] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
+  const {
+    latitude,
+    longitude,
+    error: locationError,
+    loading: locationLoading,
+  } = useGeoLocation();
 
   useEffect(() => {
     if (user) {
@@ -66,13 +74,17 @@ export default function SearchPage() {
       const params = new URLSearchParams();
       if (searchTerm) params.append("name", searchTerm);
       if (location && location !== "all") params.append("location", location);
+      if (latitude && longitude) {
+        params.append("latitude", latitude.toString());
+        params.append("longitude", longitude.toString());
+      }
 
       const response = await fetch(`/api/medicines?${params.toString()}`);
       const data = await response.json();
 
       if (response.ok) {
         setResults(data.data || []);
-        
+
         if (user) {
           await fetch("/api/users/activity", {
             method: "POST",
@@ -203,10 +215,11 @@ export default function SearchPage() {
               {loading
                 ? "Searching..."
                 : results.length > 0
-                ? `Found ${results.length} results`
-                : "Search Results"}
+                  ? `Found ${results.length} results`
+                  : "Search Results"}
             </h2>
-
+            {locationLoading && <p>Getting your location...</p>}
+            {locationError && <p>Location error: {locationError}</p>}
             {results.length === 0 && !loading ? (
               <div className="text-center py-12 bg-muted/40 rounded-lg">
                 <p className="text-muted-foreground">
@@ -217,6 +230,7 @@ export default function SearchPage() {
               </div>
             ) : (
               <div className="space-y-4">
+                <h4>Available at:</h4>
                 {results.map((medicine) => (
                   <Card key={medicine._id} className="overflow-hidden">
                     <CardContent className="p-0">
@@ -251,38 +265,53 @@ export default function SearchPage() {
                       </div>
 
                       <div className="divide-y">
-                        {medicine.pharmacies && medicine.pharmacies.length > 0 ? (
+                        {medicine.pharmacies &&
+                        medicine.pharmacies.length > 0 ? (
                           medicine.pharmacies.map((pharmacy) => (
                             <div
                               key={`${medicine._id}-${pharmacy.pharmacyId}`}
-                              className="p-4 flex justify-between items-center"
+                              className="p-4   "
                             >
-                              <div>
-                                <h4 className="font-medium">
-                                  {pharmacy.pharmacyName}
-                                </h4>
-                                <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {pharmacy.location}
+                              <div className=" flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium">
+                                    {pharmacy.pharmacyName}
+                                  </h4>
+                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {pharmacy.location}
+                                  </div>
+                                </div>
+
+                                <div className="text-right">
+                                  <div className="font-semibold">
+                                    GH₵ {pharmacy.price.toFixed(2)}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Updated{" "}
+                                    {new Date(
+                                      pharmacy.lastUpdated
+                                    ).toLocaleDateString()}
+                                  </div>
+                                  <Link
+                                    href={`/report?medicineId=${medicine._id}&name=${medicine.name}&pharmacyId=${pharmacy.pharmacyId}&pharmacy=${pharmacy.pharmacyName}`}
+                                    className="text-xs text-primary hover:underline mt-1 inline-block"
+                                  >
+                                    Report Availability
+                                  </Link>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="font-semibold">
-                                  GH₵ {pharmacy.price.toFixed(2)}
+
+                              {/* <div className="pharmacy-location">{pharmacy.location}</div> */}
+                              {pharmacy.distance !== undefined && (
+                                <div className="pharmacy-distance">
+                                  This pharmacy is{" "}
+                                  <strong>
+                                    {pharmacy.distance.toFixed(1)} km{" "}
+                                  </strong>
+                                  away from your current location
                                 </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  Updated{" "}
-                                  {new Date(
-                                    pharmacy.lastUpdated
-                                  ).toLocaleDateString()}
-                                </div>
-                                <Link
-                                  href={`/report?medicineId=${medicine._id}&name=${medicine.name}&pharmacyId=${pharmacy.pharmacyId}&pharmacy=${pharmacy.pharmacyName}`}
-                                  className="text-xs text-primary hover:underline mt-1 inline-block"
-                                >
-                                  Report Availability
-                                </Link>
-                              </div>
+                              )}
                             </div>
                           ))
                         ) : (
