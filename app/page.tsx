@@ -7,9 +7,9 @@ import { NavBar } from "@/components/nav-bar"
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-24">
-      <NavBar />
+      {/* <NavBar /> */}
 
-      <div className="flex flex-col items-center justify-center mt-16 w-full max-w-3xl">
+      <div className="flex  flex-col items-center justify-center mt-2 w-full max-w-3xl">
         <h2 className="text-4xl font-bold text-center mb-6">Find medicines available near you</h2>
         <p className="text-center text-muted-foreground mb-8">
           Search for medicines across pharmacies in Ghana and get real-time availability information

@@ -5,7 +5,6 @@ import Link from "next/link"
 export default function AboutPage() {
   return (
     <main className="flex min-h-screen flex-col">
-      <NavBar />
 
       <div className="flex-1 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">

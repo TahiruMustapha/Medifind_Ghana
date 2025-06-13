@@ -121,7 +121,7 @@ export default function PharmacyDashboard() {
 
   return (
     <main className="flex min-h-screen flex-col p-4 md:p-8">
-      <NavBar />
+      {/* <NavBar /> */}
       <div className="max-w-7xl mt-4 mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>

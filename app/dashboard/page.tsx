@@ -26,7 +26,7 @@ export default function UserDashboard() {
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col">
-        <NavBar />
+        {/* <NavBar /> */}
         <div className="flex-1 flex items-center justify-center">
           <p>Loading...</p>
         </div>
@@ -40,7 +40,7 @@ export default function UserDashboard() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <NavBar />
+      {/* <NavBar /> */}
 
       <div className="flex-1 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">

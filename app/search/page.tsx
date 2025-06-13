@@ -139,8 +139,6 @@ export default function SearchPage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <NavBar />
-
       <div className="flex-1 p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-6">Search Medicines</h1>
 
