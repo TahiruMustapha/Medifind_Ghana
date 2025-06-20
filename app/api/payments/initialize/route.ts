@@ -69,9 +69,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Update appointment with payment reference
-    appointment.paymentReference = paymentReference;
-    appointment.paystackReference = paystackResponse.data.reference;
-    await appointment.save();
+    await db.collection("appointments").updateOne(
+      { _id: new ObjectId(appointmentId) },
+      {
+        $set: {
+          paymentReference: paymentReference,
+          paystackReference: paystackResponse.data.reference,
+        },
+      }
+    );
+    // appointment.paymentReference = paymentReference;
+    // appointment.paystackReference = paystackResponse.data.reference;
+    // await appointment.save();
 
     return NextResponse.json({
       success: true,

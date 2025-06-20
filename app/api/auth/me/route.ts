@@ -1,5 +1,4 @@
 import { validateEnv } from "@/helpers/validateEnv";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { connectToMongoDB } from "@/lib/mongodb";
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
            if (!payload) {
              return NextResponse.json({ error: "Invalid token" }, { status: 401 });
            }
-           const userId = payload.userId;
+           
 
     //VERIFY TOKEN
     const decoded = jwt.verify(token, JWT_SECRET!) as {

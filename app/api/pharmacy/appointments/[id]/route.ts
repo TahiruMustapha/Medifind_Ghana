@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  // { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const { db } = await connectToMongoDB();
@@ -30,8 +31,8 @@ export async function PATCH(
         { status: 404 }
       );
     }
-
-    const appointmentId = params.id;
+    const { params } = context;
+    const appointmentId =  params.id;
     const { status, pharmacistNotes } = await request.json();
     //Find and update appointment
     const appointment = await db

@@ -1,5 +1,5 @@
 import { connectToMongoDB } from "@/lib/mongodb";
-import { sendSMS, sendVerification } from "@/lib/sms";
+// import { sendSMS, sendVerification } from "@/lib/sms";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";

@@ -1,12 +1,14 @@
 import { verifyToken } from "@/lib/auth";
 import { connectToMongoDB } from "@/lib/mongodb";
-import { sendEmail, sendSMS } from "@/lib/sms";
+import { sendSMS } from "@/lib/sms";
+import { Phone } from "lucide-react";
 import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
     const {
       pharmacy: pharmacyId, // Renamed for clarity
       appointmentDate,
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
     };
 
     const missingFields = Object.entries(requiredFields)
-      .filter(([_, value]) => !value)
+      .filter(([, value]) => !value)
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
@@ -150,7 +152,6 @@ export async function POST(request: NextRequest) {
           hour: "2-digit",
           minute: "2-digit",
         });
-
         // Send SMS to patient
         await sendSMS(
           patientPhone,
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
 
         // Send SMS to pharmacy
         await sendSMS(
-          pharmacyDoc.phone,
+          pharmacyDoc.contactNumber,
           `MediFind: New appointment request from ${patientName} for ${service} on ${formattedDate} at ${formattedTime}. Ref: ${appointment.insertedId.toString().slice(-6)}`
         );
 
@@ -176,7 +177,6 @@ export async function POST(request: NextRequest) {
         // Don't fail the request just because notifications failed
       }
     }
-
     return NextResponse.json(
       {
         success: true,

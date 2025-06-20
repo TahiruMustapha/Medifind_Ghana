@@ -3,7 +3,7 @@ import { connectToMongoDB } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { SignJWT } from "jose";
-import { ObjectId } from "mongodb";
+
 
 validateEnv();
 const JWT_SECRET = process.env.JWT_SECRET;

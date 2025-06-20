@@ -1,5 +1,4 @@
 import { connectToMongoDB } from "@/lib/mongodb";
-import { error } from "console";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { sendSMS } from "@/lib/sms";

@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // VERIFY PASSWORD
-    const isPasswordValid = await bcrypt.compare(
-      data.password,
-      user.password
-    );
+    const isPasswordValid = await bcrypt.compare(data.password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid credentials" },
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({ email: user.email }),
         }
       );
-      const twoFactorData = await response.json();
+
       return NextResponse.json(
         {
           requiresTwoFactor: true,
@@ -91,7 +88,6 @@ export async function POST(request: NextRequest) {
       .setExpirationTime("7d")
       .sign(secret);
 
-    
     // SET COOKIES
     (await cookies()).set({
       name: "auth_token",

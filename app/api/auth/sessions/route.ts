@@ -5,10 +5,9 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { verifyToken } from "@/lib/auth";
 validateEnv();
-const JWT_SECRET = process.env.JWT_SECRET;
 
 // GET /api/auth/sessions - Get all sessions for the current user
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     //GET USERID FROM MIDDLEWARE
     const token = (await cookies()).get("auth_token")?.value;
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
 }
 
 // DELETE /api/auth/sessions - Terminate all sessions except current
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     //GET USERID FROM MIDDLEWARE
     const token = (await cookies()).get("auth_token")?.value;

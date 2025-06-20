@@ -1,8 +1,8 @@
 import { connectToMongoDB } from "@/lib/mongodb";
 import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(resquest: NextRequest) {
+export async function POST() {
   try {
     //GET TOKEN FROM COOKIES
     const token = (await cookies()).get("auth_token")?.value;

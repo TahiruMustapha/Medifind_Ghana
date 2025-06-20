@@ -2,6 +2,15 @@ import { connectToMongoDB } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
 
+// type AvailabilityUpdate = {
+//   pharmacyId: string;
+//   inStock: boolean;
+//   price: number;
+//   lastUpdated: Date;
+//   reportedBy: string;
+//   verified: boolean;
+// };
+
 // POST /api/availability - Update medicine availability
 export async function POST(request: NextRequest) {
   try {
